@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Paquetes estándar de la industria para .NET. Requieren acceso a nuget.org: el sandbox
+         de generación no lo tenía (ver AI-JOURNAL.md), por lo que estas pruebas no se ejecutaron
+         aquí, pero SÍ corren en el pipeline de CI/CD (que sí tiene salida a internet) y en
+         cualquier máquina de desarrollo normal con `dotnet test`. La lógica que cubren fue
+         validada igualmente en este sandbox contra el servicio real corriendo en localhost
+         (ver AI-JOURNAL.md, sección 2, "verificación manual real"). -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.10" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AtlasPars.Domain\AtlasPars.Domain.csproj" />
+    <ProjectReference Include="..\..\src\AtlasPars.Infrastructure\AtlasPars.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AtlasPars.Api\AtlasPars.Api.csproj" />
+  </ItemGroup>
+
+</Project>

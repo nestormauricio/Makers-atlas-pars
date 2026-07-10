@@ -1,0 +1,24 @@
+# Despliegue local con un solo comando: `docker compose -f deploy/docker-compose.yml up --build`
+# desde la raíz del repo. Ver README.md.
+services:
+  atlas-pars-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ATLAS_SIGNING_KEY_ID: "local-dev-key-1"
+      # En local, la llave viene de una variable de entorno (NO commiteada). En producción,
+      # se inyecta desde Key Vault vía CSI driver o Managed Identity (ver infra/ y RUNBOOK.md).
+      ATLAS_SIGNING_KEY: "${ATLAS_SIGNING_KEY:?Define ATLAS_SIGNING_KEY en tu entorno o en un .env local no commiteado (ver .env.example)}"
+    volumes:
+      - audit-data:/data/audit
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  audit-data:

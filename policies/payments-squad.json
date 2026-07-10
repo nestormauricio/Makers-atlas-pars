@@ -1,0 +1,45 @@
+[
+  {
+    "policyId": "payments-transfers",
+    "version": 3,
+    "tenantId": "payments-squad",
+    "description": "Reglas de autorización para transferencias del squad de pagos.",
+    "defaultEffect": "Deny",
+    "enabled": true,
+    "rules": [
+      {
+        "ruleId": "deny-sanctioned-country",
+        "priority": 100,
+        "effect": "Deny",
+        "actions": ["transfer.create"],
+        "resourceTypes": ["account"],
+        "conditions": [
+          { "source": "Context", "attribute": "originCountry", "operator": "In", "value": "IR,KP,SY,CU" }
+        ],
+        "obligations": []
+      },
+      {
+        "ruleId": "challenge-high-amount",
+        "priority": 50,
+        "effect": "Challenge",
+        "actions": ["transfer.create"],
+        "resourceTypes": ["account"],
+        "conditions": [
+          { "source": "Context", "attribute": "amountCop", "operator": "GreaterThan", "value": 5000000 }
+        ],
+        "obligations": ["mfa", "manual-approval"]
+      },
+      {
+        "ruleId": "permit-role-based",
+        "priority": 10,
+        "effect": "Permit",
+        "actions": ["transfer.create", "transfer.read"],
+        "resourceTypes": ["account"],
+        "conditions": [
+          { "source": "Actor", "attribute": "roles", "operator": "Contains", "value": "payments-operator" }
+        ],
+        "obligations": []
+      }
+    ]
+  }
+]

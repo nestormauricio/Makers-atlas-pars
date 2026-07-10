@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+.vs/
+.env
+audit-data/
+/tmp/
+*.log

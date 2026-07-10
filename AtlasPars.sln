@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{694BF312-D6D5-46E0-B560-E8568B5DB798}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtlasPars.Domain", "src\AtlasPars.Domain\AtlasPars.Domain.csproj", "{6FACB3C6-847E-4EFA-BA20-6CFABFE7D5AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtlasPars.Infrastructure", "src\AtlasPars.Infrastructure\AtlasPars.Infrastructure.csproj", "{356E9F55-1589-4C85-8692-4007B8259829}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtlasPars.Api", "src\AtlasPars.Api\AtlasPars.Api.csproj", "{0DF0D83A-4FF2-405B-8C3F-83D107620FEC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0ED1FC0D-FEE3-46CF-9B60-F9B76C22F6F3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtlasPars.Tests", "tests\AtlasPars.Tests\AtlasPars.Tests.csproj", "{95715F95-949E-49E3-8FF1-B88C0489660C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6FACB3C6-847E-4EFA-BA20-6CFABFE7D5AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FACB3C6-847E-4EFA-BA20-6CFABFE7D5AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FACB3C6-847E-4EFA-BA20-6CFABFE7D5AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FACB3C6-847E-4EFA-BA20-6CFABFE7D5AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{356E9F55-1589-4C85-8692-4007B8259829}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{356E9F55-1589-4C85-8692-4007B8259829}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{356E9F55-1589-4C85-8692-4007B8259829}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{356E9F55-1589-4C85-8692-4007B8259829}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DF0D83A-4FF2-405B-8C3F-83D107620FEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DF0D83A-4FF2-405B-8C3F-83D107620FEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DF0D83A-4FF2-405B-8C3F-83D107620FEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DF0D83A-4FF2-405B-8C3F-83D107620FEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95715F95-949E-49E3-8FF1-B88C0489660C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95715F95-949E-49E3-8FF1-B88C0489660C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95715F95-949E-49E3-8FF1-B88C0489660C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95715F95-949E-49E3-8FF1-B88C0489660C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6FACB3C6-847E-4EFA-BA20-6CFABFE7D5AC} = {694BF312-D6D5-46E0-B560-E8568B5DB798}
+		{356E9F55-1589-4C85-8692-4007B8259829} = {694BF312-D6D5-46E0-B560-E8568B5DB798}
+		{0DF0D83A-4FF2-405B-8C3F-83D107620FEC} = {694BF312-D6D5-46E0-B560-E8568B5DB798}
+		{95715F95-949E-49E3-8FF1-B88C0489660C} = {0ED1FC0D-FEE3-46CF-9B60-F9B76C22F6F3}
+	EndGlobalSection
+EndGlobal

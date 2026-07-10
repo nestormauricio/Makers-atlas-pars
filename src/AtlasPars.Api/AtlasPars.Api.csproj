@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <UserSecretsId>atlas-pars-api</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Observabilidad real (ver Program.cs): SDK de OpenTelemetry, no solo la API de Meter.
+         Requiere acceso a nuget.org para restaurar (ver AI-JOURNAL.md sobre el sandbox de generación). -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AtlasPars.Domain\AtlasPars.Domain.csproj" />
+    <ProjectReference Include="..\AtlasPars.Infrastructure\AtlasPars.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

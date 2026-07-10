@@ -1,0 +1,5 @@
+# Cualquier cambio a políticas de seguridad, firma o infraestructura requiere revisión
+# del squad de plataforma antes de poder mergear a main (branch protection, ver README.md).
+/src/AtlasPars.Infrastructure/Signing/  @platform-squad
+/infra/                                 @platform-squad
+/.github/workflows/                     @platform-squad
