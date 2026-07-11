@@ -6,23 +6,30 @@ WORKDIR /src
 COPY . .
 RUN dotnet restore src/AtlasPars.Api/AtlasPars.Api.csproj
 RUN dotnet publish src/AtlasPars.Api/AtlasPars.Api.csproj -c Release -o /app --no-restore
+# La imagen runtime (chiseled) no tiene shell, así que no se puede hacer `mkdir`/`chown` ahí.
+# Se crea el directorio de auditoría aquí, en el stage de build (que sí tiene shell), y se
+# copia con el propietario correcto a la imagen final.
+RUN mkdir -p /audit-seed && chown 64198:64198 /audit-seed
 
 # ---- runtime ----
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# "-chiseled": imagen mínima (sin shell, sin gestor de paquetes, sin utilidades de sistema como
+# perl/tar/gzip/ncurses/util-linux). Elegida deliberadamente para minimizar CVEs de superficie de
+# SO que no tienen nada que ver con la app (ver hallazgo real en Trivy, CI #19): la variante
+# Debian completa traía ~20 vulnerabilidades CRITICAL/HIGH de paquetes que la app nunca usa en
+# runtime, solo para poder correr `curl`/`wget` en el HEALTHCHECK. Ver el modo `--healthcheck`
+# en Program.cs para cómo se resuelve el healthcheck SIN esas herramientas.
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-noble-chiseled AS runtime
 WORKDIR /app
 
-# Principio de menor privilegio: usuario no-root dedicado (ver THREAT-MODEL.md).
-RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin atlas
+# La imagen chiseled ya corre como usuario no-root (uid 64198) por defecto — no hace falta
+# crear un usuario adicional (de hecho no se puede: no hay `useradd`, no hay shell).
+COPY --from=build --chown=64198:64198 /app .
+COPY --chown=64198:64198 policies /app/policies
+COPY --from=build --chown=64198:64198 /audit-seed /data/audit
 
-# El volumen de auditoría debe existir y pertenecer a 'atlas' ANTES de declararlo como VOLUME:
-# si no, Docker lo monta con dueño root y JsonlAuditStore (que corre como 'atlas' no-root)
-# falla con UnauthorizedAccessException al primer intento de escritura.
-RUN mkdir -p /data/audit && chown -R atlas:atlas /data/audit
-
-USER atlas
-
-COPY --from=build --chown=atlas:atlas /app .
-COPY --chown=atlas:atlas policies /app/policies
+# El volumen de auditoría se crea con el propietario correcto en tiempo de build, ya que no hay
+# forma de correr `mkdir`/`chown` dentro de la imagen chiseled en runtime.
+USER 64198
 
 ENV ASPNETCORE_URLS=http://+:8080
 ENV Atlas__PoliciesDirectory=/app/policies
@@ -30,7 +37,10 @@ ENV Atlas__AuditDirectory=/data/audit
 VOLUME ["/data/audit"]
 
 EXPOSE 8080
-HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:8080/health || exit 1
+
+# Ver Program.cs: reutiliza el propio binario .NET ya publicado en vez de depender de
+# curl/wget, que no existen en esta imagen a propósito.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["dotnet", "AtlasPars.Api.dll", "--healthcheck"]
 
 ENTRYPOINT ["dotnet", "AtlasPars.Api.dll"]
