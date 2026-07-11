@@ -113,7 +113,7 @@ jobs:
           path: "."
           format: "SARIF"
       - name: Subir resultados a code scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: reports/dependency-check-report.sarif
 
@@ -135,7 +135,7 @@ jobs:
           exit-code: "1"
       - name: Subir resultados
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 
@@ -149,7 +149,7 @@ jobs:
         with:
           working_directory: infra
           sarif_file: tfsec.sarif
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: tfsec.sarif
