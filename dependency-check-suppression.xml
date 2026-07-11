@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+   <suppress>
+      <notes><![CDATA[
+      Falso positivo confirmado: CVE-2026-39883 pertenece al SDK de OpenTelemetry para GO
+      (paquete "opentelemetry-go", CWE-426, afecta solo BSD/Solaris vía el comando `kenv`).
+      No tiene relación con el paquete NuGet .NET "OpenTelemetry.Exporter.Console" que usa este
+      repo. El scanner hace match por similitud de nombre entre ecosistemas distintos.
+      Ver: https://github.com/open-telemetry/opentelemetry-go/security/advisories/GHSA-hfvc-g4fc-pqhx
+      ]]></notes>
+      <packageUrl regex="true">^pkg:nuget/OpenTelemetry\.Exporter\.Console@.*$</packageUrl>
+      <cve>CVE-2026-39883</cve>
+   </suppress>
+   <suppress>
+      <notes><![CDATA[
+      Mismo falso positivo, variantes reportadas contra otros paquetes .NET de OpenTelemetry
+      por la misma confusión de ecosistema (Go vs .NET). Ver justificación arriba.
+      ]]></notes>
+      <packageUrl regex="true">^pkg:nuget/OpenTelemetry\..*$</packageUrl>
+      <cve>CVE-2026-44967</cve>
+      <cve>CVE-2026-41178</cve>
+      <cve>CVE-2026-39882</cve>
+      <cve>CVE-2026-40894</cve>
+   </suppress>
+</suppressions>

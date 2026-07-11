@@ -1,0 +1,3 @@
+# Falso positivo: CVE de OpenTelemetry-Go (lenguaje Go), no aplica al paquete NuGet .NET
+# equivalente que usa este repo. Ver dependency-check-suppression.xml para el detalle completo.
+CVE-2026-39883
