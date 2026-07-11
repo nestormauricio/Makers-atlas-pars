@@ -124,26 +124,35 @@ jobs:
       - name: Build imagen
         run: docker build -f deploy/Dockerfile -t atlas-pars-api:ci .
 
-      - name: Trivy scan (tabla legible en el log, no bloquea)
+      # Gate real del pipeline: formato tabla, confirmado estable (ver CI #42, 0 vulnerabilidades
+      # CRITICAL/HIGH en los 4 targets escaneados). Este es el que bloquea el merge.
+      - name: Trivy scan (gate)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: atlas-pars-api:ci
           format: table
           severity: CRITICAL,HIGH
-          exit-code: "0"
+          exit-code: "1"
           trivyignores: .trivyignore
 
-      - name: Trivy scan
+      # Reporte para la pestaña de Security de GitHub: mismo escaneo en SARIF, pero best-effort.
+      # El formato sarif de Trivy tiene un bug conocido con proyectos .NET multi-root
+      # ("Multiple root projects found in .deps.json") que hace fallar la generación del SARIF
+      # incluso con 0 vulnerabilidades reales (confirmado: el gate de arriba, mismo escaneo en
+      # tabla, pasa limpio). continue-on-error evita que ese bug de tooling tumbe el pipeline;
+      # el gate de seguridad real ya se hizo en el step anterior.
+      - name: Trivy scan (SARIF para Security tab, best-effort)
+        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: atlas-pars-api:ci
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
-          exit-code: "1"
           trivyignores: .trivyignore
       - name: Subir resultados
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
