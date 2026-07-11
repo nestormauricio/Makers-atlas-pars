@@ -55,10 +55,6 @@ jobs:
           if not files:
               print("::error::No se encontró ningún reporte de cobertura"); sys.exit(1)
 
-          # El umbral de 70% aplica específicamente a la lógica del evaluador de políticas
-          # (AtlasPars.Domain), no al agregado global del repo (ver README.md sección "Cobertura").
-          # Cobertura Cobertura reporta por <class filename="...">; filtramos por el path del
-          # proyecto Domain y calculamos line-rate agregado solo sobre esas clases.
           target_fragment = "AtlasPars.Domain"
           covered = 0
           total = 0
@@ -127,6 +123,16 @@ jobs:
       - uses: actions/checkout@v7
       - name: Build imagen
         run: docker build -f deploy/Dockerfile -t atlas-pars-api:ci .
+
+      - name: Trivy scan (tabla legible en el log, no bloquea)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: atlas-pars-api:ci
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+          trivyignores: .trivyignore
+
       - name: Trivy scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -171,3 +177,4 @@ jobs:
         with:
           release-type: simple
           package-name: atlas-pars
+          
