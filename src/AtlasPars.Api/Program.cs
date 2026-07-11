@@ -24,15 +24,29 @@ builder.Logging.AddJsonConsole(o =>
 });
 
 // --- Configuración ---
-var policiesDir = builder.Configuration["Atlas:PoliciesDirectory"] ?? "policies";
-var auditDir = builder.Configuration["Atlas:AuditDirectory"] ?? "audit-data";
-var keyProviderKind = builder.Configuration["Atlas:KeyProvider"] ?? "EnvVar"; // EnvVar | AzureKeyVault
+// IMPORTANTE: NO se capturan estos valores en variables locales aquí. `WebApplicationFactory`
+// (usado en las pruebas de integración) inyecta overrides de configuración vía ConfigureWebHost
+// -> ConfigureAppConfiguration, pero esos overrides solo quedan mezclados en builder.Configuration
+// en el momento de builder.Build() / arranque del host — NO están disponibles todavía en este punto
+// del script top-level. Si se leyeran aquí como variables locales (como se hacía antes: `var
+// policiesDir = builder.Configuration["Atlas:PoliciesDirectory"] ?? "policies"`), los servicios
+// quedarían registrados con la carpeta de políticas de PRODUCCIÓN por defecto ("policies") incluso
+// en tests que inyectan un directorio temporal — el bug real detrás de la regresión de
+// Authorize_permite_operador_con_rol_correcto (ver AI-JOURNAL.md). La corrección: cada adaptador
+// resuelve IConfiguration desde el IServiceProvider en el momento en que el singleton se
+// construye (lazy, la primera vez que se necesita), momento en el que la configuración YA está
+// completamente compuesta, incluyendo cualquier override de test.
+string PoliciesDir(IServiceProvider sp) => sp.GetRequiredService<IConfiguration>()["Atlas:PoliciesDirectory"] ?? "policies";
+string AuditDir(IServiceProvider sp) => sp.GetRequiredService<IConfiguration>()["Atlas:AuditDirectory"] ?? "audit-data";
 
 // --- Guardia de arranque fail-fast (ver THREAT-MODEL.md T-04): en Production, jamás arrancar
 // con la llave de firma de fallback insegura de EnvKeyProvider. Esto convierte un error de
-// configuración silencioso (fail-open) en un fallo de arranque explícito (fail-closed). ---
+// configuración silencioso (fail-open) en un fallo de arranque explícito (fail-closed). Esta
+// guardia SÍ puede leerse de forma temprana porque no depende de overrides de test: en Production
+// real (fuera de tests) no hay ConfigureAppConfiguration adicional que mezclar. ---
+var earlyKeyProviderKind = builder.Configuration["Atlas:KeyProvider"] ?? "EnvVar";
 if (builder.Environment.IsProduction() &&
-    keyProviderKind.Equals("EnvVar", StringComparison.OrdinalIgnoreCase) &&
+    earlyKeyProviderKind.Equals("EnvVar", StringComparison.OrdinalIgnoreCase) &&
     string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ATLAS_SIGNING_KEY")))
 {
     throw new InvalidOperationException(
@@ -76,10 +90,10 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration["Atlas:OtlpEndpoint"]))
 
 // --- DI: puertos -> adaptadores (ver ARCHITECTURE.md, arquitectura hexagonal) ---
 builder.Services.AddSingleton<PolicyEvaluator>();
-builder.Services.AddSingleton<IPolicyStore>(_ => new FileSystemPolicyStore(policiesDir));
-builder.Services.AddSingleton<IAuditStore>(_ => new JsonlAuditStore(auditDir));
+builder.Services.AddSingleton<IPolicyStore>(sp => new FileSystemPolicyStore(PoliciesDir(sp)));
+builder.Services.AddSingleton<IAuditStore>(sp => new JsonlAuditStore(AuditDir(sp)));
 
-if (keyProviderKind.Equals("AzureKeyVault", StringComparison.OrdinalIgnoreCase))
+if (earlyKeyProviderKind.Equals("AzureKeyVault", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddSingleton<IKeyProvider, AzureKeyVaultKeyProvider>();
 }
