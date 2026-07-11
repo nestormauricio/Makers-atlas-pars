@@ -18,7 +18,7 @@ RUN mkdir -p /audit-seed && chown 64198:64198 /audit-seed
 # Debian completa traía ~20 vulnerabilidades CRITICAL/HIGH de paquetes que la app nunca usa en
 # runtime, solo para poder correr `curl`/`wget` en el HEALTHCHECK. Ver el modo `--healthcheck`
 # en Program.cs para cómo se resuelve el healthcheck SIN esas herramientas.
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-noble-chiseled AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS runtime
 WORKDIR /app
 
 # La imagen chiseled ya corre como usuario no-root (uid 64198) por defecto — no hace falta
