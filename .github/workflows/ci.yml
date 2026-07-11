@@ -177,6 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     needs: [build-test, sast, sca, docker-scan, iac-scan]
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
         with:
@@ -185,5 +186,3 @@ jobs:
         uses: googleapis/release-please-action@v5
         with:
           release-type: simple
-          package-name: atlas-pars
-          
