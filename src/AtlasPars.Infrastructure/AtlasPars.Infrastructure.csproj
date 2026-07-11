@@ -1,23 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>AtlasPars.Infrastructure</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
     <!-- Proveedor real de KMS para producción (AzureKeyVaultKeyProvider). Ver ADR-0002/ADR-0004
          y la nota de verificación dentro de AzureKeyVaultKeyProvider.cs. -->
     <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.11.0" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\AtlasPars.Domain\AtlasPars.Domain.csproj" />
   </ItemGroup>
-
 </Project>
