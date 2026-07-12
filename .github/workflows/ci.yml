@@ -178,6 +178,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: [build-test, sast, sca, docker-scan, iac-scan]
     continue-on-error: true
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
         with:
