@@ -15,10 +15,11 @@ services:
     volumes:
       - audit-data:/data/audit
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      test: ["CMD", "dotnet", "AtlasPars.Api.dll", "--healthcheck"]
       interval: 15s
-      timeout: 3s
+      timeout: 5s
       retries: 3
+      start_period: 10s
 
 volumes:
   audit-data:

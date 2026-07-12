@@ -1,3 +1,4 @@
+using System.Net.Http;
 using AtlasPars.Api.Endpoints;
 using AtlasPars.Domain.Abstractions;
 using AtlasPars.Domain.Policies;
@@ -8,6 +9,23 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
+// --- Modo --healthcheck (ver deploy/Dockerfile, HEALTHCHECK): la imagen "chiseled" no tiene
+// curl/wget, así que el propio binario se reutiliza como cliente HTTP mínimo para el probe.
+if (args.Contains("--healthcheck"))
+{
+    try
+    {
+        var url = Environment.GetEnvironmentVariable("ATLAS_HEALTHCHECK_URL") ?? "http://127.0.0.1:8080/health";
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        var response = await http.GetAsync(url);
+        return response.IsSuccessStatusCode ? 0 : 1;
+    }
+    catch
+    {
+        return 1;
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -15,35 +33,16 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
-// --- Logging estructurado (JSON en consola; en k8s cualquier colector lo levanta tal cual) ---
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(o =>
 {
-    o.IncludeScopes = true; // incluye TraceId/SpanId del Activity actual en cada línea de log
+    o.IncludeScopes = true;
     o.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ ";
 });
 
-// --- Configuración ---
-// IMPORTANTE: NO se capturan estos valores en variables locales aquí. `WebApplicationFactory`
-// (usado en las pruebas de integración) inyecta overrides de configuración vía ConfigureWebHost
-// -> ConfigureAppConfiguration, pero esos overrides solo quedan mezclados en builder.Configuration
-// en el momento de builder.Build() / arranque del host — NO están disponibles todavía en este punto
-// del script top-level. Si se leyeran aquí como variables locales (como se hacía antes: `var
-// policiesDir = builder.Configuration["Atlas:PoliciesDirectory"] ?? "policies"`), los servicios
-// quedarían registrados con la carpeta de políticas de PRODUCCIÓN por defecto ("policies") incluso
-// en tests que inyectan un directorio temporal — el bug real detrás de la regresión de
-// Authorize_permite_operador_con_rol_correcto (ver AI-JOURNAL.md). La corrección: cada adaptador
-// resuelve IConfiguration desde el IServiceProvider en el momento en que el singleton se
-// construye (lazy, la primera vez que se necesita), momento en el que la configuración YA está
-// completamente compuesta, incluyendo cualquier override de test.
 string PoliciesDir(IServiceProvider sp) => sp.GetRequiredService<IConfiguration>()["Atlas:PoliciesDirectory"] ?? "policies";
 string AuditDir(IServiceProvider sp) => sp.GetRequiredService<IConfiguration>()["Atlas:AuditDirectory"] ?? "audit-data";
 
-// --- Guardia de arranque fail-fast (ver THREAT-MODEL.md T-04): en Production, jamás arrancar
-// con la llave de firma de fallback insegura de EnvKeyProvider. Esto convierte un error de
-// configuración silencioso (fail-open) en un fallo de arranque explícito (fail-closed). Esta
-// guardia SÍ puede leerse de forma temprana porque no depende de overrides de test: en Production
-// real (fuera de tests) no hay ConfigureAppConfiguration adicional que mezclar. ---
 var earlyKeyProviderKind = builder.Configuration["Atlas:KeyProvider"] ?? "EnvVar";
 if (builder.Environment.IsProduction() &&
     earlyKeyProviderKind.Equals("EnvVar", StringComparison.OrdinalIgnoreCase) &&
@@ -56,9 +55,6 @@ if (builder.Environment.IsProduction() &&
         "AzureKeyVault o define ATLAS_SIGNING_KEY explícitamente.");
 }
 
-// --- Observabilidad: OpenTelemetry real (no solo un Meter suelto) — trazas + métricas ---
-// El ActivitySource/Meter de negocio viven en AuthorizationService; aquí se registra el SDK
-// que efectivamente recolecta y exporta esas señales (ver docs/RUNBOOK.md "Observabilidad").
 var otelResource = ResourceBuilder.CreateDefault().AddService(
     serviceName: "atlas-pars-api",
     serviceVersion: typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.0.0");
@@ -68,27 +64,25 @@ builder.Services.AddOpenTelemetry()
     {
         tracing
             .SetResourceBuilder(otelResource)
-            .AddSource(AuthorizationService.ActivitySourceName) // spans propios: evaluate/sign/audit
+            .AddSource(AuthorizationService.ActivitySourceName)
             .AddAspNetCoreInstrumentation()
-            .AddConsoleExporter(); // en producción: reemplazar/añadir AddOtlpExporter() vía OTEL_EXPORTER_OTLP_ENDPOINT
+            .AddConsoleExporter();
     })
     .WithMetrics(metrics =>
     {
         metrics
             .SetResourceBuilder(otelResource)
-            .AddMeter(AuthorizationService.MeterName) // atlas_pars_decisions_total, atlas_pars_authorize_latency_ms
+            .AddMeter(AuthorizationService.MeterName)
             .AddAspNetCoreInstrumentation()
             .AddConsoleExporter();
     });
 
 if (!string.IsNullOrWhiteSpace(builder.Configuration["Atlas:OtlpEndpoint"]))
 {
-    // Habilita exportación real a un backend OTLP (Tempo/Jaeger/Azure Monitor) cuando se configure.
     builder.Services.Configure<OpenTelemetry.Exporter.OtlpExporterOptions>(o =>
         o.Endpoint = new Uri(builder.Configuration["Atlas:OtlpEndpoint"]!));
 }
 
-// --- DI: puertos -> adaptadores (ver ARCHITECTURE.md, arquitectura hexagonal) ---
 builder.Services.AddSingleton<PolicyEvaluator>();
 builder.Services.AddSingleton<IPolicyStore>(sp => new FileSystemPolicyStore(PoliciesDir(sp)));
 builder.Services.AddSingleton<IAuditStore>(sp => new JsonlAuditStore(AuditDir(sp)));
@@ -105,8 +99,6 @@ else
 builder.Services.AddSingleton<IDecisionSigner, HmacDecisionSigner>();
 builder.Services.AddSingleton<AuthorizationService>();
 
-// --- Health check compuesto (no trivial): valida políticas legibles, audit store escribible
-// y que el firmante efectivamente firme (smoke test funcional, no solo "el proceso vive"). ---
 builder.Services.AddHealthChecks()
     .AddCheck<PoliciesDirectoryHealthCheck>("policies_directory")
     .AddCheck<AuditStoreWritableHealthCheck>("audit_store_writable")
@@ -146,12 +138,10 @@ app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok(new { service = "atlas-pars", status = "ok" }));
 
 app.Run();
+return 0;
 
-// Necesario para que WebApplicationFactory<Program> funcione en las pruebas de integración.
 public partial class Program { }
 
-/// <summary>Health check "no trivial": valida que el directorio de políticas exista y sea legible,
-/// no solo que el proceso esté vivo.</summary>
 public sealed class PoliciesDirectoryHealthCheck : Microsoft.Extensions.Diagnostics.HealthChecks.IHealthCheck
 {
     private readonly IConfiguration _config;
@@ -169,7 +159,6 @@ public sealed class PoliciesDirectoryHealthCheck : Microsoft.Extensions.Diagnost
     }
 }
 
-/// <summary>Verifica que el almacén de auditoría acepte escrituras (no solo que exista el directorio).</summary>
 public sealed class AuditStoreWritableHealthCheck : Microsoft.Extensions.Diagnostics.HealthChecks.IHealthCheck
 {
     private readonly IConfiguration _config;
@@ -194,8 +183,6 @@ public sealed class AuditStoreWritableHealthCheck : Microsoft.Extensions.Diagnos
     }
 }
 
-/// <summary>Smoke test funcional del firmante: firma y verifica un payload sintético en cada chequeo.
-/// Detecta llaves corruptas/ausentes antes de que una decisión real falle en producción.</summary>
 public sealed class SigningServiceHealthCheck : Microsoft.Extensions.Diagnostics.HealthChecks.IHealthCheck
 {
     private readonly IDecisionSigner _signer;
